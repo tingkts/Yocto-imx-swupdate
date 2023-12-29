@@ -1,0 +1,716 @@
+From 16f6fbb39c351bee534ac9172f7d53b0faba35b9 Mon Sep 17 00:00:00 2001
+From: ting <ting@gmail.com>
+Date: Wed, 13 Dec 2023 12:43:41 +0800
+Subject: [PATCH] modify swupdate-scripts to adapt imx8qm single copy and
+ double copy for make base image & update image.
+
+---
+ ...dualslot_7.5G.pt => swu_dualslot_14.5G.pt} | Bin 512 -> 512 bytes
+ .../common/swu_singleslot_7.5G.pt             | Bin 0 -> 512 bytes
+ base_image_assembling/slota                   |   2 +-
+ base_image_assembling/slotb                   |   2 +-
+ boards/cfg_boards.cfg                         |   1 +
+ boards/cfg_imx8qm_base.cfg                    |   1 +
+ boards/cfg_imx8qm_base_dualcopy.cfg           |  84 ++++++++++++++++
+ boards/cfg_imx8qm_base_singlecopy.cfg         |  62 ++++++++++++
+ boards/cfg_imx8qm_update_image.cfg            |   1 +
+ boards/cfg_imx8qm_update_image_dualcopy.cfg   |  29 ++++++
+ boards/cfg_imx8qm_update_image_singlecopy.cfg |  23 +++++
+ ...iption-imx8qm-emmc-dualcopy-image.template |  89 +++++++++++++++++
+ ...tion-imx8qm-emmc-singlecopy-image.template |  38 ++++++++
+ update_image_build/emmc_bootpart.sh           |   4 +-
+ update_image_build/env_set_bootslot.sh        |  16 +--
+ update_image_build/slot_update                |   2 +-
+ update_image_build/sw-description             |  91 ++++++++++++++++++
+ update_image_build/swu_update_image_build.sh  |  16 ++-
+ utils/utils.sh                                |  12 ++-
+ 19 files changed, 453 insertions(+), 20 deletions(-)
+ rename base_image_assembling/common/{swu_dualslot_7.5G.pt => swu_dualslot_14.5G.pt} (75%)
+ create mode 100644 base_image_assembling/common/swu_singleslot_7.5G.pt
+ create mode 120000 boards/cfg_imx8qm_base.cfg
+ create mode 100644 boards/cfg_imx8qm_base_dualcopy.cfg
+ create mode 100644 boards/cfg_imx8qm_base_singlecopy.cfg
+ create mode 120000 boards/cfg_imx8qm_update_image.cfg
+ create mode 100644 boards/cfg_imx8qm_update_image_dualcopy.cfg
+ create mode 100644 boards/cfg_imx8qm_update_image_singlecopy.cfg
+ create mode 100644 boards/sw-description-imx8qm-emmc-dualcopy-image.template
+ create mode 100644 boards/sw-description-imx8qm-emmc-singlecopy-image.template
+ create mode 100644 update_image_build/sw-description
+
+diff --git a/base_image_assembling/common/swu_dualslot_7.5G.pt b/base_image_assembling/common/swu_dualslot_14.5G.pt
+similarity index 75%
+rename from base_image_assembling/common/swu_dualslot_7.5G.pt
+rename to base_image_assembling/common/swu_dualslot_14.5G.pt
+index a2d61aa0f75b2699569501cfd98ca94ca95fb93e..8df3286f8f08a02648a55a0eca0d25c764524197 100644
+GIT binary patch
+delta 53
+zcmZo*X<*r~gOO#Qxi9bJJ&Xz}w-^|hAN=P5Vul3|85j;QgZa%Me!^2A{}w~&DgXqf
+B6l?$h
+
+delta 53
+zcmZo*X<*r~gOOz^cU;rtJ&Xz}u?!5%5B~E2F~fos28IL7V16@*pO69M$1;Sj0s!lV
+B61e~X
+
+diff --git a/base_image_assembling/common/swu_singleslot_7.5G.pt b/base_image_assembling/common/swu_singleslot_7.5G.pt
+new file mode 100644
+index 0000000000000000000000000000000000000000..a3e25680338857247ec7bd88965ec19f1f486b44
+GIT binary patch
+literal 512
+zcmeyhgF&G0!XAbVI~W-HZuA}ay^o=0KLguN2ByzTUMaFMFznmMZoyK@-F!@-@!vo8
+z($BBOwlHmA+|5w4siCWcvD=5~tne#_8U}{f{}@IA{X!t^ik~jfHs%Nad4QNffti8f
+V01yM&%^>~*V9Xu3MbJ5+s{nyFF5>_I
+
+literal 0
+HcmV?d00001
+
+diff --git a/base_image_assembling/slota b/base_image_assembling/slota
+index b121b9d..88a00da 120000
+--- a/base_image_assembling/slota
++++ b/base_image_assembling/slota
+@@ -1 +1 @@
+-slota
+\ No newline at end of file
++/home/ting/yocto/imx-5.15.71_2.2.1/imx8qm/build_imx8qm-mek_xwayland_imx-image-full/tmp/deploy/images/imx8qm-mek/
+\ No newline at end of file
+diff --git a/base_image_assembling/slotb b/base_image_assembling/slotb
+index 6004a8c..88a00da 120000
+--- a/base_image_assembling/slotb
++++ b/base_image_assembling/slotb
+@@ -1 +1 @@
+-slotb
+\ No newline at end of file
++/home/ting/yocto/imx-5.15.71_2.2.1/imx8qm/build_imx8qm-mek_xwayland_imx-image-full/tmp/deploy/images/imx8qm-mek/
+\ No newline at end of file
+diff --git a/boards/cfg_boards.cfg b/boards/cfg_boards.cfg
+index cd86bea..ac7021a 100644
+--- a/boards/cfg_boards.cfg
++++ b/boards/cfg_boards.cfg
+@@ -8,5 +8,6 @@ imx8mm
+ imx6ull
+ imx6ullwch
+ imx93
++imx8qm
+ "
+
+diff --git a/boards/cfg_imx8qm_base.cfg b/boards/cfg_imx8qm_base.cfg
+new file mode 120000
+index 0000000..3dcea6d
+--- /dev/null
++++ b/boards/cfg_imx8qm_base.cfg
+@@ -0,0 +1 @@
++cfg_imx8qm_base_singlecopy.cfg
+\ No newline at end of file
+diff --git a/boards/cfg_imx8qm_base_dualcopy.cfg b/boards/cfg_imx8qm_base_dualcopy.cfg
+new file mode 100644
+index 0000000..5b6b778
+--- /dev/null
++++ b/boards/cfg_imx8qm_base_dualcopy.cfg
+@@ -0,0 +1,84 @@
++#!/usr/bin/bash
++
++# Name of the SoC.
++# This name will be used to source this board specific cfg file.
++SOC_NAME=imx8qm
++
++#############################################
++# Used to generate base image.
++#############################################
++# Partition table format, MBR or GPT.
++IMAGE_PT_TBL_FMT="MBR"
++
++# Path of MBR file. If -m is specified in command option, this file will be regenerated.
++IMAGE_PT_TBL_PATH="${WRK_DIR}/common/swu_dualslot_14.5G.pt"
++# Information of MBR file. Format is [FILENAME:<OFFSET_START>:<OFFSET_END>]
++IMAGE_PT_TBL="${IMAGE_PT_TBL_PATH}:0:14500M"
++# MBR header length. For MBR, this is always 512.
++IMAGE_PT_TBL_LENGTH=512
++# MBR partition information. When the MBR need to be regenerated, this struct will be used to generate a new MBR.
++# Format: [PARTITION_NAME:<OFFSET_START>:<OFFSET_END>:<Filesystem Type>]
++# Numbers and fs type in this struct will be passed to command directly.
++# sudo parted <PARTITION_NAME> unit MiB mkpart primary <Filesystem Type> <OFFSET_START> <OFFSET_END>
++IMAGE_PT_TABLE_STRUCT="
++1:SLOTA_BOOT_PT:100:220:fat32
++2:SLOTA_ROOTFS:220:7220:ext4
++3:SLOTB_BOOT_PT:7220:7340:fat32
++4:SLOTB_ROOTFS:7340:14340:ext4
++"
++
++# Header of a image.
++# Contains MBR, bootloader and padding.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++IMAGES_HEADER="
++${IMAGE_PT_TBL_PATH}:0:33K
++${WRK_DIR}/slota/imx-boot-imx8qm-mek-sd.bin-flash_spl:33K:8M
++"
++
++# SWUpdate image.
++# Contains zImage, dtb and ramfs for SWUpdate.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++IMAGES_SWUPDATE="
++${WRK_DIR}/slota/Image:8M:38M
++${WRK_DIR}/slota/imx8qm-imx8qm-mek.dtb:38M:42M
++${WRK_DIR}/slota/swupdate-image-imx8qm-mek.cpio.gz.u-boot:42M:100M
++"
++
++# SlotA boot partion files list, which will be copied into slotb boot partition.
++SLOTA_BOOT_PT_FILES="
++${WRK_DIR}/slota/Image
++${WRK_DIR}/slota/imx8qm-imx8qm-mek.dtb
++${WRK_DIR}/slota/tee.bin
++${WRK_DIR}/slota/hdmitxfw.bin
++${WRK_DIR}/slota/hdmirxfw.bin
++${WRK_DIR}/slota/dpfw.bin
++"
++# SLOTA images
++# Contains boot partition and rootfs.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++SLOTA_BOOT_PT="${WRK_DIR}/common/slota_boot_pt_120M.mirror:100M:220M"
++SLOTA_ROOTFS="${WRK_DIR}/slota/imx-image-full-imx8qm-mek.ext4:220M:7220M"
++SLOTA_IMAGES="
++${SLOTA_BOOT_PT}
++${SLOTA_ROOTFS}
++"
++
++# SlotB boot partion files list, which will be copied into slotb boot partition.
++SLOTB_BOOT_PT_FILES="
++${WRK_DIR}/slotb/Image
++${WRK_DIR}/slotb/imx8qm-imx8qm-mek.dtb
++${WRK_DIR}/slotb/tee.bin
++${WRK_DIR}/slotb/hdmitxfw.bin
++${WRK_DIR}/slotb/hdmirxfw.bin
++${WRK_DIR}/slotb/dpfw.bin
++"
++# SLOTB images
++# Contains boot partition and rootfs.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++SLOTB_BOOT_PT="${WRK_DIR}/common/slotb_boot_pt_120M.mirror:7220M:7340M"
++SLOTB_ROOTFS="${WRK_DIR}/slotb/imx-image-full-imx8qm-mek.ext4:7340M:14340M"
++SLOTB_IMAGES="
++${SLOTB_BOOT_PT}
++${SLOTB_ROOTFS}
++"
++
+diff --git a/boards/cfg_imx8qm_base_singlecopy.cfg b/boards/cfg_imx8qm_base_singlecopy.cfg
+new file mode 100644
+index 0000000..9935e2a
+--- /dev/null
++++ b/boards/cfg_imx8qm_base_singlecopy.cfg
+@@ -0,0 +1,62 @@
++#!/usr/bin/bash
++
++# Name of the SoC.
++# This name will be used to source this board specific cfg file.
++SOC_NAME=imx8qm
++
++#############################################
++# Used to generate base image.
++#############################################
++# Partition table format, MBR or GPT.
++IMAGE_PT_TBL_FMT="MBR"
++
++# Path of MBR file. If -m is specified in command option, this file will be regenerated.
++IMAGE_PT_TBL_PATH="${WRK_DIR}/common/swu_singleslot_7.5G.pt"
++# Information of MBR file. Format is [FILENAME:<OFFSET_START>:<OFFSET_END>]
++IMAGE_PT_TBL="${IMAGE_PT_TBL_PATH}:0:7500M"
++# MBR header length. For MBR, this is always 512.
++IMAGE_PT_TBL_LENGTH=512
++# MBR partition information. When the MBR need to be regenerated, this struct will be used to generate a new MBR.
++# Format: [PARTITION_NAME:<OFFSET_START>:<OFFSET_END>:<Filesystem Type>]
++# Numbers and fs type in this struct will be passed to command directly.
++# sudo parted <PARTITION_NAME> unit MiB mkpart primary <Filesystem Type> <OFFSET_START> <OFFSET_END>
++IMAGE_PT_TABLE_STRUCT="
++1:SLOTA_BOOT_PT:100:220:fat32
++2:SLOTA_ROOTFS:220:7220:ext4
++"
++
++# Header of a image.
++# Contains MBR, bootloader and padding.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++IMAGES_HEADER="
++${IMAGE_PT_TBL_PATH}:0:33K
++${WRK_DIR}/slota/imx-boot-imx8qm-mek-sd.bin-flash_spl:33K:8M
++"
++
++# SWUpdate image.
++# Contains zImage, dtb and ramfs for SWUpdate.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++IMAGES_SWUPDATE="
++${WRK_DIR}/slota/Image:8M:38M
++${WRK_DIR}/slota/imx8qm-imx8qm-mek.dtb:38M:42M
++${WRK_DIR}/slota/swupdate-image-imx8qm-mek.cpio.gz.u-boot:42M:100M
++"
++
++# SlotA boot partion files list, which will be copied into slotb boot partition.
++SLOTA_BOOT_PT_FILES="
++${WRK_DIR}/slota/Image
++${WRK_DIR}/slota/imx8qm-imx8qm-mek.dtb
++${WRK_DIR}/slota/tee.bin
++${WRK_DIR}/slota/hdmitxfw.bin
++${WRK_DIR}/slota/hdmirxfw.bin
++${WRK_DIR}/slota/dpfw.bin
++"
++# SLOTA images
++# Contains boot partition and rootfs.
++# Format: [FILEPATH:<OFFSET_START>:<OFFSET_END>]
++SLOTA_BOOT_PT="${WRK_DIR}/common/slota_boot_pt_120M.mirror:100M:220M"
++SLOTA_ROOTFS="${WRK_DIR}/slota/imx-image-full-imx8qm-mek.ext4:220M:7220M"
++SLOTA_IMAGES="
++${SLOTA_BOOT_PT}
++${SLOTA_ROOTFS}
++"
+\ No newline at end of file
+diff --git a/boards/cfg_imx8qm_update_image.cfg b/boards/cfg_imx8qm_update_image.cfg
+new file mode 120000
+index 0000000..7110b02
+--- /dev/null
++++ b/boards/cfg_imx8qm_update_image.cfg
+@@ -0,0 +1 @@
++cfg_imx8qm_update_image_singlecopy.cfg
+\ No newline at end of file
+diff --git a/boards/cfg_imx8qm_update_image_dualcopy.cfg b/boards/cfg_imx8qm_update_image_dualcopy.cfg
+new file mode 100644
+index 0000000..8384e51
+--- /dev/null
++++ b/boards/cfg_imx8qm_update_image_dualcopy.cfg
+@@ -0,0 +1,29 @@
++#!/usr/bin/bash
++
++SOC_NAME=imx8qm
++
++#############################################
++# Used to generate update image.
++#############################################
++UPDATE_BSP_VER="LF_v5.15.71_2.2.1"
++UPDATE_CONTAINER_VER="1.0"
++UPDATE_SLOT="b"
++# Supported SSL modes are RSA-PKCS-1.5, RSA-PSS and DGST.
++SSL_MODE=RSA-PKCS-1.5
++
++UPDATE_IMAGES="
++slotb_boot_pt_120M.mirror:120M
++imx-image-full-imx8qm-mek.ext4:7000M
++"
++
++UPDATE_IMAGES_RAW="
++imx-boot-imx8qm-mek-sd.bin-flash_spl
++"
++
++UPDATE_SCRIPTS="
++emmc_bootpart.sh
++env_set_bootslot.sh
++"
++
++
++SW_DESCRIPTION_TEMPLATE="${WRK_DIR}/../boards/sw-description-imx8qm-emmc-dualcopy-image.template"
+diff --git a/boards/cfg_imx8qm_update_image_singlecopy.cfg b/boards/cfg_imx8qm_update_image_singlecopy.cfg
+new file mode 100644
+index 0000000..f99bd6d
+--- /dev/null
++++ b/boards/cfg_imx8qm_update_image_singlecopy.cfg
+@@ -0,0 +1,23 @@
++#!/usr/bin/bash
++
++SOC_NAME=imx8qm
++
++#############################################
++# Used to generate update image.
++#############################################
++UPDATE_BSP_VER="LF_v5.15.71_2.2.1"
++UPDATE_CONTAINER_VER="1.0"
++UPDATE_SLOT="b"
++# Supported SSL modes are RSA-PKCS-1.5, RSA-PSS and DGST.
++SSL_MODE=RSA-PKCS-1.5
++
++UPDATE_IMAGES="
++slotb_boot_pt_120M.mirror:120M
++imx-image-full-imx8qm-mek.ext4:7000M
++"
++
++UPDATE_IMAGES_RAW="
++imx-boot-imx8qm-mek-sd.bin-flash_spl
++"
++
++SW_DESCRIPTION_TEMPLATE="${WRK_DIR}/../boards/sw-description-imx8qm-emmc-singlecopy-image.template"
+\ No newline at end of file
+diff --git a/boards/sw-description-imx8qm-emmc-dualcopy-image.template b/boards/sw-description-imx8qm-emmc-dualcopy-image.template
+new file mode 100644
+index 0000000..a2594ee
+--- /dev/null
++++ b/boards/sw-description-imx8qm-emmc-dualcopy-image.template
+@@ -0,0 +1,89 @@
++software =
++{
++	version = "1.0";
++	description = "Firmware update for test Project";
++	hardware-compatibility: [ "1.0", "1.2", "1.3"];
++
++	embedded-script ="
++		require (\"swupdate\")
++
++		function set_boot_partition(image)
++			for k,l in pairs(image) do
++                swupdate.trace(\"image[\" .. tostring(k) .. \"] = \" .. tostring(l))
++            end
++
++			local file = io.open(\"/proc/cmdline\", \"r\")
++			local cmdline = file:read(\"*a\")
++			file:close()
++			local cur_slot = cmdline:match(\"cur_slot=(%w+)\")
++
++			if (cur_slot == \"dualA\") then
++				swupdate.trace(\"Slot is A.\")
++				image.device = \"/dev/mmcblk0p3\"
++			else
++				swupdate.trace(\"Slot is B.\")
++				image.device = \"/dev/mmcblk0p1\"
++			end
++
++			return true, image
++		end
++
++		function set_rootfs_partition(image)
++			for k,l in pairs(image) do
++                swupdate.trace(\"image[\" .. tostring(k) .. \"] = \" .. tostring(l))
++            end
++
++			local file = io.open(\"/proc/cmdline\", \"r\")
++			local cmdline = file:read(\"*a\")
++			file:close()
++			local cur_slot = cmdline:match(\"cur_slot=(%w+)\")
++
++			if (cur_slot == \"dualA\") then
++				swupdate.trace(\"Slot is A.\")
++				image.device = \"/dev/mmcblk0p4\"
++			else
++				swupdate.trace(\"Slot is B.\")
++				image.device = \"/dev/mmcblk0p2\"
++			end
++
++			return true, image
++		end
++	";
++
++	imx8qm-mek: {
++		images: (
++			{
++				filename = "slotb_boot_pt_120M.mirror";
++				sha256 = "<slotb_boot_pt_120M.mirror_sha256>";
++				device = "/dev/mmcblk0p3";
++				installed-directly = true;
++				hook = "set_boot_partition";
++			},
++			{
++				filename = "imx-image-full-imx8qm-mek.ext4";
++				sha256 = "<imx-image-full-imx8qm-mek.ext4_sha256>";
++				device = "/dev/mmcblk0p4";
++				installed-directly = true;
++				hook = "set_rootfs_partition";
++			},
++			{
++				filename = "imx-boot-imx8qm-mek-sd.bin-flash_spl";
++				sha256 = "<imx-boot-imx8qm-mek-sd.bin-flash_spl_sha256>";
++				device = "/dev/mmcblk0boot0";
++				installed-directly = true;
++			}
++		);
++		scripts: (
++			{
++				filename = "emmc_bootpart.sh";
++				sha256 = "<emmc_bootpart.sh_sha256>";
++				type = "postinstall";
++			},
++			{
++				filename = "env_set_bootslot.sh";
++				sha256 = "<env_set_bootslot.sh_sha256>";
++				type = "postinstall";
++			}
++		);
++	}
++}
+diff --git a/boards/sw-description-imx8qm-emmc-singlecopy-image.template b/boards/sw-description-imx8qm-emmc-singlecopy-image.template
+new file mode 100644
+index 0000000..16045f8
+--- /dev/null
++++ b/boards/sw-description-imx8qm-emmc-singlecopy-image.template
+@@ -0,0 +1,38 @@
++software =
++{
++	version = "1.0";
++	description = "Firmware update for test Project";
++	hardware-compatibility: [ "1.0", "1.2", "1.3"];
++	imx8qm-mek: {
++		images: (
++			{
++				filename = "slotb_boot_pt_120M.mirror";
++				sha256 = "<slotb_boot_pt_120M.mirror_sha256>";
++				device = "/dev/mmcblk0p1";
++				installed-directly = true;
++			},
++			{
++				filename = "imx-image-full-imx8qm-mek.ext4";
++				sha256 = "<imx-image-full-imx8qm-mek.ext4_sha256>";
++				device = "/dev/mmcblk0p2";
++				installed-directly = true;
++			},
++			{
++				filename = "imx-boot-imx8qm-mek-sd.bin-flash_spl";
++				sha256 = "<imx-boot-imx8qm-mek-sd.bin-flash_spl_sha256>";
++				device = "/dev/mmcblk0boot0";
++				installed-directly = true;
++			}
++		);
++		bootenv: (
++			{
++				name = "upgrade_available";
++				value = "1";
++			},
++			{
++				name = "bootslot";
++				value = "singlenormal";
++			}
++		);
++	}
++}
+diff --git a/update_image_build/emmc_bootpart.sh b/update_image_build/emmc_bootpart.sh
+index 1405e70..f7fb72e 100755
+--- a/update_image_build/emmc_bootpart.sh
++++ b/update_image_build/emmc_bootpart.sh
+@@ -1,2 +1,2 @@
+-echo "enable emmc(/dev/mmcblk1) boot partition 1"
+-mmc bootpart enable 1 1 /dev/mmcblk1
++echo "enable emmc(/dev/mmcblk0) boot partition 1"
++mmc bootpart enable 1 1 /dev/mmcblk0
+diff --git a/update_image_build/env_set_bootslot.sh b/update_image_build/env_set_bootslot.sh
+index b4993d4..862f4b1 100755
+--- a/update_image_build/env_set_bootslot.sh
++++ b/update_image_build/env_set_bootslot.sh
+@@ -1,15 +1,15 @@
+ #!/bin/sh
+
+ echo "Set upgrade_available to 1"
+-hub_setenv --upgrade_available 1
++fw_setenv upgrade_available 1
+
+-echo "Switch boot_slot to... "
+-cur_boot_slot=$(hub_printenv -f boot_slot)
+-if [ x$cur_boot_slot == x"A" ]; then
++echo "Switch boot_slot to... "
++cmdline=$(cat /proc/cmdline)
++cur_slot=$(echo $cmdline | grep -oP 'cur_slot=\K\w+')
++if [ "$cur_slot" == "dualA" ]; then
+ 	echo "Switch to SlotB"
+-	hub_setenv --boot_slot 2
++	fw_setenv bootslot dualB
+ else
+ 	echo "Switch to SlotA"
+-	hub_setenv --boot_slot 1
+-fi
+-
++	fw_setenv bootslot dualA
++fi
+\ No newline at end of file
+diff --git a/update_image_build/slot_update b/update_image_build/slot_update
+index 9761c26..dc6271f 120000
+--- a/update_image_build/slot_update
++++ b/update_image_build/slot_update
+@@ -1 +1 @@
+-./slot_update
+\ No newline at end of file
++/home/ting/yocto/imx-5.15.71_2.2.1/imx8qm/build_imx8qm-mek_xwayland_imx-image-full/tmp/deploy/images/imx8qm-mek
+\ No newline at end of file
+diff --git a/update_image_build/sw-description b/update_image_build/sw-description
+new file mode 100644
+index 0000000..3de5f17
+--- /dev/null
++++ b/update_image_build/sw-description
+@@ -0,0 +1,91 @@
++software =
++{
++	version = "1.0";
++	description = "Firmware update for test Project";
++	hardware-compatibility: [ "1.0", "1.2", "1.3"];
++
++	embedded-script ="
++		require (\"swupdate\")
++
++		function set_boot_partition(image)
++			for k,l in pairs(image) do
++                swupdate.trace(\"image[\" .. tostring(k) .. \"] = \" .. tostring(l))
++            end
++
++			local file = io.open(\"/proc/cmdline\", \"r\")
++			local cmdline = file:read(\"*a\")
++			file:close()
++			local cur_slot = cmdline:match(\"cur_slot=(%w+)\")
++
++			if (cur_slot == \"dualA\") then
++				swupdate.trace(\"Slot is A.\")
++				image.device = \"/dev/mmcblk0p3\"
++			else
++				swupdate.trace(\"Slot is B.\")
++				image.device = \"/dev/mmcblk0p1\"
++			end
++
++			return true, image
++		end
++
++		function set_rootfs_partition(image)
++			for k,l in pairs(image) do
++                swupdate.trace(\"image[\" .. tostring(k) .. \"] = \" .. tostring(l))
++            end
++
++			local file = io.open(\"/proc/cmdline\", \"r\")
++			local cmdline = file:read(\"*a\")
++			file:close()
++			local cur_slot = cmdline:match(\"cur_slot=(%w+)\")
++
++			if (cur_slot == \"dualA\") then
++				swupdate.trace(\"Slot is A.\")
++				image.device = \"/dev/mmcblk0p4\"
++			else
++				swupdate.trace(\"Slot is B.\")
++				image.device = \"/dev/mmcblk0p2\"
++			end
++
++			return true, image
++		end
++	";
++
++	imx8qm-mek: {
++		images: (
++			{
++				filename = "slotb_boot_pt_120M.mirror.gz";
++				sha256 = "79cc30641da48a557a8f47876103d258f8cc4aa8e22e479bf6ac1638e1b95c38";
++compressed = "zlib";
++				device = "/dev/mmcblk0p3";
++				installed-directly = true;
++				hook = "set_boot_partition";
++			},
++			{
++				filename = "imx-image-full-imx8qm-mek.ext4.gz";
++				sha256 = "0901abbf53cd5d102a98e0d4122deadd0b0995a0f91f773cccc88bc1b1c93a61";
++compressed = "zlib";
++				device = "/dev/mmcblk0p4";
++				installed-directly = true;
++				hook = "set_rootfs_partition";
++			},
++			{
++				filename = "imx-boot-imx8qm-mek-sd.bin-flash_spl";
++				sha256 = "901517d5673f62bdb232c42c354339d8d8844176e8537ea0d0d36124eaec4d29";
++				device = "/dev/mmcblk0boot0";
++				installed-directly = true;
++			}
++		);
++		scripts: (
++			{
++				filename = "emmc_bootpart.sh";
++				sha256 = "f5ba2e67451c799e411abbfc212a25b374a68654c7a994df6ab2a26c97a81085";
++				type = "postinstall";
++			},
++			{
++				filename = "env_set_bootslot.sh";
++				sha256 = "d357a2ff0fd3ea6b1fb8da1bb400dd8fb1b111e40e431ca6005e6c86b66d5511";
++				type = "postinstall";
++			}
++		);
++	}
++}
+diff --git a/update_image_build/swu_update_image_build.sh b/update_image_build/swu_update_image_build.sh
+index 889913c..3753123 100755
+--- a/update_image_build/swu_update_image_build.sh
++++ b/update_image_build/swu_update_image_build.sh
+@@ -92,7 +92,7 @@ for each_img in ${UPDATE_IMAGES}; do
+ 	img_name=$(echo $each_img | cut -d: -f1)
+ 	img_truncate_size=$(echo $each_img | cut -d: -f2)
+ 	if [ -e ${WRK_DIR}/slot_update/${img_name} ]; then
+-		cp ${WRK_DIR}/slot_update/${img_name} ${WRK_DIR}/
++		cp -vfL ${WRK_DIR}/slot_update/${img_name} ${WRK_DIR}/
+ 		if [[ ! -z $img_truncate_size ]]; then
+ 			echo "Truncating ${WRK_DIR}/${img_name} to $img_truncate_size"
+ 			truncate -s $img_truncate_size ${WRK_DIR}/${img_name}
+@@ -103,7 +103,7 @@ for each_img in ${UPDATE_IMAGES}; do
+ done
+ echo "DONE"
+
+-# 4. Compress update image files
++# 4. Compress update image files
+ if [ x${COMPRESS_FLAG} == xtrue ]; then
+ 	echo ">>>> Compress update images..."
+ 	for each_img in ${UPDATE_IMAGE_FILES}; do
+@@ -120,6 +120,14 @@ echo -n ">>>> Check sw-decription file for images..."
+ generate_sw_desc ${WRK_DIR}/sw-description ${SW_DESCRIPTION_TEMPLATE} ${COMPRESS_FLAG} ${UPDATE_IMAGE_FILES}
+ echo "DONE"
+
++echo -n ">>>> Check sw-decription file for raw image..."
++if [[ -z "${UPDATE_IMAGES_RAW}" ]]; then
++	echo "No raw image to handle, ignored!"
++else
++	generate_sw_desc ${WRK_DIR}/sw-description true false ${UPDATE_IMAGES_RAW}
++fi
++echo "DONE"
++
+ echo -n ">>>> Check sw-decription file for scripts..."
+ if [[ -z "${UPDATE_SCRIPTS}" ]]; then
+ 	echo "No post scripts to handle, ignored!"
+@@ -161,6 +169,10 @@ for each_item in $UPDATE_IMAGE_FILES; do
+ 	fi
+ done
+
++for each_item in $UPDATE_IMAGES_RAW; do
++	UPDATE_FILES="$UPDATE_FILES ${each_item}"
++done
++
+ for each_item in $UPDATE_SCRIPTS; do
+ 	UPDATE_FILES="$UPDATE_FILES ${each_item}"
+ done
+diff --git a/utils/utils.sh b/utils/utils.sh
+index b8ad871..9bbf00f 100644
+--- a/utils/utils.sh
++++ b/utils/utils.sh
+@@ -20,20 +20,20 @@ function generate_padding_file()
+ 	local pad_base_num=$(numfmt --from=iec ${pad_base})
+ 	local pad_size_num=$(numfmt --from=iec ${pad_size})
+
+-
++
+ 	local pad_file_size=$(wc -c ${pad_filename} | cut -d" " -f1)
+
+ 	local pad_start=`expr ${pad_base_num} + ${pad_file_size}`
+
+ 	if [[ ${pad_start} -gt ${pad_size_num} ]]; then
+-		echo "pad_start:${pad_start} (pad_base:${pad_base_num} + pad file size:${pad_file_size}) > pad end: ${pad_size_num}"
++		echo "pad_start:${pad_start} (pad_base:${pad_base_num} + pad file size:${pad_file_size}) > pad end: ${pad_size_num}"
+ 		return -1
+ 	fi
+
+ 	if [[ ${pad_start} -eq ${pad_size_num} ]]; then
+     	echo "no need padding."
+     	return 0
+-	fi
++	fi
+
+ 	local padding_size=`expr ${pad_size_num} - ${pad_start}`
+
+@@ -83,7 +83,7 @@ function calculate_pt_size()
+ 	if [[ ${pt_start_num} -gt ${pt_end_num} ]]; then
+     	echo "partition start is greater than end!"
+     	return -1
+-	fi
++	fi
+
+ 	local pt_size_num=`expr ${pt_end_num} - ${pt_start_num}`
+ 	echo "pt_size_num: $pt_size_num"
+@@ -159,7 +159,9 @@ function generate_pt_tbl_dualslot()
+ 		exit -1
+ 	fi
+
+-	for each_item in $IMAGE_PT_TBL_STRUCT; do
++	sudo parted ${PT_DISKLABEL} mklabel msdos
++
++	for each_item in $IMAGE_PT_TABLE_STRUCT; do
+ 		local pt_index=$(echo $each_item | cut -d: -f1)
+ 		local pt_name=$(echo $each_item | cut -d: -f2)
+ 		local pt_start=$(echo $each_item | cut -d: -f3)
+--
+2.17.1
+

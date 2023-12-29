@@ -1,0 +1,135 @@
+From c180217f523d155b63e2240df42aef73a04ba069 Mon Sep 17 00:00:00 2001
+From: ting <ting@gmail.com>
+Date: Fri, 29 Dec 2023 10:44:32 +0800
+Subject: [PATCH] enable-env_redunand-bootcount-limit, default-env,
+ LF5.15.71-2.2.0
+
+---
+ .../freescale/imx8qm_mek/imx8qm_mek.c |  3 ++
+ configs/imx8qm_mek_defconfig          |  7 ++++-
+ include/configs/imx8qm_mek.h              | 28 +++++++++++++++++--
+ 3 files changed, 34 insertions(+), 4 deletions(-)
+
+diff --git a/board/freescale/imx8qm_mek/imx8qm_mek.c b/board/freescale/imx8qm_mek/imx8qm_mek.c
+index b387f29b43..e618a8c28f 100644
+--- a/board/freescale/imx8qm_mek/imx8qm_mek.c
++++ b/board/freescale/imx8qm_mek/imx8qm_mek.c
+@@ -22,6 +22,7 @@
+ #include <asm/arch/sys_proto.h>
+ #include "../common/tcpc.h"
+ #include "command.h"
++#include <timestamp.h>
+
+ DECLARE_GLOBAL_DATA_PTR;
+
+@@ -498,6 +499,8 @@ int board_late_init(void)
+ #endif
+ 	}
+
++	env_set("u-boot_version", PLAIN_VERSION"("U_BOOT_DATE"-"U_BOOT_TIME")");
++
+ #ifdef CONFIG_ENV_IS_IN_MMC
+ 	board_late_mmc_env_init();
+ #endif
+diff --git a/configs/imx8qm_mek_defconfig b/configs/imx8qm_mek_defconfig
+index 08d45e549c..381ecb2732 100644
+--- a/configs/imx8qm_mek_defconfig
++++ b/configs/imx8qm_mek_defconfig
+@@ -11,6 +11,8 @@ CONFIG_SPL_LIBGENERIC_SUPPORT=y
+ CONFIG_NR_DRAM_BANKS=4
+ CONFIG_ENV_SIZE=0x2000
+ CONFIG_ENV_OFFSET=0x400000
++CONFIG_SYS_REDUNDAND_ENVIRONMENT=y
++CONFIG_ENV_OFFSET_REDUND=0x402000
+ CONFIG_DM_GPIO=y
+ #CONFIG_DEFAULT_DEVICE_TREE="fsl-imx8qm-mek"
+ CONFIG_DEFAULT_DEVICE_TREE="fsl-imx8qm-mek"
+@@ -22,6 +24,7 @@ CONFIG_SPL_DOS_PARTITION=n
+ CONFIG_SPL_DM_SEQ_ALIAS=y
+ CONFIG_SPL_SERIAL=y
+ CONFIG_SPL_DRIVERS_MISC=y
++CONFIG_BOOTCOUNT_BOOTLIMIT=3
+ CONFIG_SPL=y
+ CONFIG_SPL_LOAD_IMX_CONTAINER=y
+ CONFIG_IMX_CONTAINER_CFG="board/freescale/imx8qm_mek/uboot-container.cfg"
+@@ -32,7 +35,7 @@ CONFIG_PANIC_HANG=y
+ CONFIG_OF_SYSTEM_SETUP=y
+ CONFIG_BOOTDELAY=3
+ CONFIG_USE_BOOTCOMMAND=y
+-CONFIG_BOOTCOMMAND="mmc dev ${mmcdev}; if mmc rescan; then if run loadbootscript; then run bootscript; else if test ${sec_boot} = yes; then if run loadcntr; then run mmcboot; else run netboot; fi; else if run loadimage; then run mmcboot; else run netboot; fi; fi; fi; else booti ${loadaddr} - ${fdt_addr}; fi"
++CONFIG_BOOTCOMMAND="if test ${bootslot} = singlerescue; then run swuboot; fi; run adjustbootsource; mmc dev ${mmcdev}; if mmc rescan; then if run loadbootscript; then run bootscript; else if test ${sec_boot} = yes; then if run loadcntr; then run mmcboot; else run netboot; fi; else if run loadimage; then run mmcboot; else run netboot; fi; fi; fi; else booti ${loadaddr} - ${fdt_addr}; fi"
+ CONFIG_LOG=y
+ CONFIG_BOARD_EARLY_INIT_F=y
+ CONFIG_SPL_BOARD_INIT=y
+@@ -195,6 +198,8 @@ CONFIG_VIDEO_LOGO=y
+ CONFIG_VIDEO_IMX8_LVDS=y
+ CONFIG_VIDEO_IT6263_BRIDGE=y
+ CONFIG_SYS_WHITE_ON_BLACK=y
++CONFIG_BOOTCOUNT_LIMIT=y
++CONFIG_BOOTCOUNT_ENV=y
+ CONFIG_SPLASH_SCREEN=y
+ CONFIG_SPLASH_SCREEN_ALIGN=y
+ CONFIG_CMD_BMP=y
+diff --git a/include/configs/imx8qm_mek.h b/include/configs/imx8qm_mek.h
+index f5990bab10..8ba487678f 100644
+--- a/include/configs/imx8qm_mek.h
++++ b/include/configs/imx8qm_mek.h
+@@ -10,6 +10,7 @@
+ #include <linux/stringify.h>
+ #include <asm/arch/imx-regs.h>
+ #include "imx_env.h"
++#include <version.h>
+
+ #define CONFIG_SYS_BOOTM_LEN		(64 * SZ_1M)
+
+@@ -153,7 +154,7 @@
+ 	"if run loadhdp; then; hdp load ${hdp_addr}; fi;"
+ #define HDPRX_LOAD_ENV \
+ 	"if test ${hdprx_enable} = yes; then if run loadhdprx; then; hdprx load ${hdprx_addr}; fi; fi; "
+-#define INITRD_ADDR_ENV "initrd_addr=0x83100000\0"
++#define INITRD_ADDR_ENV "initrd_addr=0xd2100000\0"
+ #endif
+
+ #define CONFIG_MFG_ENV_SETTINGS \
+@@ -185,7 +186,7 @@
+ 	"mmcroot=" CONFIG_MMCROOT " rootwait rw\0" \
+ 	"mmcautodetect=yes\0" \
+ 	"mmcargs=setenv bootargs console=${console},${baudrate} earlycon root=${mmcroot} " \
+-		"cpufreq.default_governor=SCHEDUTIL\0" \
++		"cpufreq.default_governor=SCHEDUTIL cur_slot=${bootslot} U-Boot_ver=${u-boot_version}\0" \
+ 	"loadbootscript=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
+ 	"bootscript=echo Running bootscript from mmc ...; " \
+ 		"source\0" \
+@@ -252,7 +253,28 @@
+ 			"else " \
+ 				"booti; " \
+ 			"fi;" \
+-		"fi;\0"
++		"fi;\0" \
++	"bootslot=dualA\0" \
++	"u-boot_version=null\0" \
++	"usb_port=1\0" \
++	"post_opt=saveenv;\0" \
++	"adjustbootsource=if test ${bootslot} = dualA || test ${bootslot} = singlenormal; then run adjustbootsourceA; fi;" \
++        "if test ${bootslot} = dualB; then run adjustbootsourceB; fi\0" \
++	"altbootusb=echo Boot Fail! Get into usb fastboot download.;fastboot usb ${usb_port}\0" \
++	"altbootsingle=if test ${bootslot} = singlerescue; then run altbootusb; fi; if test ${bootslot} = singlenormal; then run swuboot; fi\0" \
++	"adjustbootsourceB=echo RootFs Slot B; setenv mmcpart 3; setenv mmcroot /dev/mmcblk${mmcdev}p4 rootwait rw\0" \
++	"adjustbootsourceA=echo RootFs Slot A; setenv mmcpart 1; setenv mmcroot /dev/mmcblk${mmcdev}p2 rootwait rw\0" \
++	"altbootRollbackB=echo Rolling back to slot dualB;setenv bootslot dualB;run post_opt;run bootcmd\0" \
++	"altbootRollbackA=echo Rolling back to slot dualA;setenv bootslot dualA;run post_opt;run bootcmd\0" \
++	"altbootdual=if test ${bootslot} = dualA ; then run altbootRollbackB; fi; if test ${bootslot} = dualB ; then run altbootRollbackA; fi;\0" \
++	"swuargs=setenv bootargs console=${console},${baudrate} earlycon=${earlycon},${baudrate} " \
++        "cur_slot=${bootslot} U-Boot_ver=${u-boot_version}\0"\
++	"loadswuimage=mmc read  ${loadaddr} 0x4000 0xF000\0" \
++	"loadswufdt=mmc read  ${fdt_addr} 0x13000 0x200\0" \
++	"loadswuramdisk=mmc read  ${initrd_addr} 0x15000 0xF000\0" \
++        "swuboot=echo swuboot ramdisk;run loadswuimage;run loadswufdt;run loadswuramdisk;run swuargs;booti ${loadaddr} ${initrd_addr} ${fdt_addr}\0" \
++        "altbootcmd=if test ${bootslot} = singlerescue ||  test ${bootslot} = singlenormal; then run altbootsingle; fi;" \
++	"if test ${bootslot} = dualA ||  test ${bootslot} = dualB; then run altbootdual; fi\0"
+
+ /* Link Definitions */
+ #ifdef CONFIG_TARGET_IMX8QM_MEK_A72_ONLY
+--
+2.17.1
+
